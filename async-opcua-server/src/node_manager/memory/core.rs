@@ -504,7 +504,7 @@ impl CoreNodeManagerImpl {
             VariableId::Server_ServerStatus_SecondsTillShutdown => {
                 match self.status.seconds_till_shutdown() {
                     Some(x) => x.into(),
-                    None => Variant::Empty
+                    None => 0u32.into()
                 }
             }
             VariableId::Server_ServerStatus_ShutdownReason => {
