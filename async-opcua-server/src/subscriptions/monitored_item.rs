@@ -454,6 +454,16 @@ impl MonitoredItem {
         }
     }
 
+    pub(super) fn has_skipped_value(&self) -> bool {
+        self.sample_skipped_data_value.is_some()
+    }
+
+    pub(super) fn skipped_value_is_due(&self, now: &DateTime) -> bool {
+        self.sample_skipped_data_value
+            .as_ref()
+            .is_some_and(|sample| sample.due_at <= *now)
+    }
+
     pub(super) fn notify_data_value(
         &mut self,
         mut value: DataValue,
