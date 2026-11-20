@@ -327,8 +327,16 @@ impl CoreNodeManagerImpl {
                 (limits.max_string_length as u32).into()
             }
             VariableId::Server_ServerCapabilities_MinSupportedSampleRate => {
-                (limits.subscriptions.min_sampling_interval_ms as u32).into()
+                limits.subscriptions.min_sampling_interval_ms.into()
             }
+            VariableId::Server_ServerCapabilities_LocaleIdArray => {
+                context.info.config.locale_ids.clone().into()
+            }
+            VariableId::Server_ServerCapabilities_SoftwareCertificates => {
+                // The SDK does not expose software certificates in CreateSession.
+                Vec::<ExtensionObject>::new().into()
+            }
+            VariableId::Server_ServerDiagnostics_EnabledFlag => context.info.diagnostics.enabled.into(),
             VariableId::Server_ServerCapabilities_OperationLimits_MaxMonitoredItemsPerCall => {
                 (limits.operational.max_monitored_items_per_call as u32).into()
             }
