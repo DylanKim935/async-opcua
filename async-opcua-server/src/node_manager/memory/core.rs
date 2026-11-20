@@ -45,6 +45,29 @@ impl InMemoryNodeManagerImplBuilder for CoreNodeManagerBuilder {
             let mut type_tree = context.type_tree.write();
             address_space.import_node_set(&CoreNamespace, type_tree.namespaces_mut());
         }
+        // Part 5, 6.3.2: omit optional limits the server does not determine.
+        // The per-session and per-subscription limits do not define a server-wide capacity.
+        for id in [
+            VariableId::Server_ServerCapabilities_MaxSubscriptions,
+            VariableId::Server_ServerCapabilities_MaxMonitoredItems,
+            VariableId::Server_ServerCapabilities_MaxSelectClauseParameters,
+            VariableId::Server_ServerCapabilities_MaxWhereClauseParameters,
+        ] {
+            address_space.delete(&id.into(), true);
+        }
+        if context
+            .info
+            .config
+            .limits
+            .subscriptions
+            .max_monitored_items_per_sub
+            == 0
+        {
+            address_space.delete(
+                &VariableId::Server_ServerCapabilities_MaxMonitoredItemsPerSubscription.into(),
+                true,
+            );
+        }
 
         CoreNodeManagerImpl::new(context.node_managers.clone(), context.status.clone())
     }
@@ -306,6 +329,7 @@ impl CoreNodeManagerImpl {
 
         let limits = &context.info.config.limits;
         let hist_cap = &context.info.capabilities.history;
+        let as_limit = |n: usize| Variant::UInt32(u32::try_from(n).unwrap_or(u32::MAX));
 
         let v: Variant = match var_id {
             VariableId::Server_ServerCapabilities_MaxArrayLength => {
@@ -328,6 +352,17 @@ impl CoreNodeManagerImpl {
             }
             VariableId::Server_ServerCapabilities_MinSupportedSampleRate => {
                 limits.subscriptions.min_sampling_interval_ms.into()
+            }
+            VariableId::Server_ServerCapabilities_MaxSessions => as_limit(limits.max_sessions),
+            VariableId::Server_ServerCapabilities_MaxSubscriptionsPerSession => {
+                as_limit(limits.subscriptions.max_subscriptions_per_session)
+            }
+            VariableId::Server_ServerCapabilities_MaxMonitoredItemsPerSubscription
+                if limits.subscriptions.max_monitored_items_per_sub > 0 => {
+                as_limit(limits.subscriptions.max_monitored_items_per_sub)
+            }
+            VariableId::Server_ServerCapabilities_MaxMonitoredItemsQueueSize => {
+                as_limit(limits.subscriptions.max_monitored_item_queue_size.max(1))
             }
             VariableId::Server_ServerCapabilities_LocaleIdArray => {
                 context.info.config.locale_ids.clone().into()
